@@ -28,7 +28,7 @@ Example
 
 ```ruby
 class Example
-        include Sandra
+  include Sandra
   
   key_attribute :key, :string 
 
