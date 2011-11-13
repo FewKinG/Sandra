@@ -15,6 +15,7 @@ stored in the cassandra database like you are used to with a relational database
 I plan to also support associations (one-to-one, one-to-many and many-to-many). 
 
 What's already possible:
+
 - Create a sandra model that can be loaded from and stored in the cassandra database
 - Define key attribute, super column, attributes and types for that model
 - Perform get, range and multi_get on the database
