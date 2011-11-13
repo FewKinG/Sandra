@@ -46,4 +46,4 @@ f = Example.get("NewKey")
 fs = Example.multi_get(:keys => ["NewKey"], :start => 1.00)
 ```
 
-Note that sandra will care about packing and unpacking the values (doubles in this case).
+Note that sandra will care about packing and unpacking the values (floats in this case).

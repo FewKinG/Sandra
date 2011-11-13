@@ -151,6 +151,14 @@ module Sandra
     end
 
     def multi_get(keys = [], options)
+      options.each do |k, v|
+	new_val = case v.class
+		  when String then v.to_s
+		  when Float then [v].pack("G")
+		  else v
+		  end
+	options[k] = new_val
+      end
       connection.multi_get(self.to_s, options.delete(:keys), options.delete(:columns), options.delete(:sub_columns), options).map do |key, value|
 	self.parse_object(key, value)
       end
