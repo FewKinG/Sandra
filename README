@@ -26,8 +26,7 @@ look into the sandra-rails gem (which I also forked to work with the 3.1.1 versi
 Example
 =======
 
-```
-class Example
+```class Example
   include Sandra
   
   key_attribute :key, :string 
