@@ -1,6 +1,7 @@
 require 'active_model'
 require 'cassandra'
 require 'sandra/key_validator'
+require 'sandra/super_column_validator'
 
 module Sandra
   def self.included(base)
@@ -60,28 +61,48 @@ module Sandra
   end
 
   module ClassMethods
+    def determine_type(value)
+      case value.class.to_s
+      when "String" then :string
+      when "Float" then :double
+      else :string
+      end
+    end
+
+    def pack(value, type = nil)
+      return nil if value.nil?
+      type ||= determine_type(value)
+      case type
+      when :string then value.to_s
+      when :double then [value].pack("G")
+      else value
+      end
+    end
+
+    def unpack(value, type)
+      return nil if value.nil?
+      case type
+      when :string then value.to_s
+      when :double then value.unpack("G").first
+      else value
+      end
+    end
+
     def column(col_name, type)
       define_method col_name do
         attr = col_name.to_s
-	return nil if attributes[attr].nil?
-	case type
-	when :double then attributes[attr].unpack("G").first
-	when :string then attributes[attr].to_s
-	else attributes[attr]
-	end
+	self.class.unpack attributes[attr], type
       end
       define_method "#{col_name}=" do |val|
-        attr = col_name.to_s
-        attributes[attr] = case type
-			   when :double then [val].pack("G")
-			   when :string then val.to_s
-			   else val
-			   end
+	attr = col_name.to_s
+        attributes[attr] = self.class.pack(val, type)
       end
     end
 
     def super_column(col_name, type)
+      raise "#{self.to_s} already has a super column" if @super_column_name
       @super_column_name = col_name.to_s
+      validates col_name, :presence => true, :super_column => true
       column col_name, type   
     end
 
@@ -108,6 +129,7 @@ module Sandra
     end
 
     def key_attribute(name, type)
+      raise "#{self.to_s} already has a key attribute" if @key
       @key = name
       validates name, :presence => true, :key => true
       column name, type
@@ -130,7 +152,11 @@ module Sandra
     def parse_object(key, hash)
       if @super_column_name
 	sup_col_val = hash.keys.first
-	hash = {@super_column_name => sup_col_val}.merge(hash.values.first)
+	unless sup_col_val.nil?
+	  hash = {@super_column_name => sup_col_val}.merge(hash.values.first)
+	else
+	  nil
+	end
       end
       unless hash.empty?
         self.new_object(key, hash)
@@ -139,8 +165,11 @@ module Sandra
       end
     end
 
-    def get(key)
-      hash = connection.get(self.to_s, key)
+    def get(key, super_column_s = nil)
+      hash = connection.get(self.to_s, key, super_column_s)
+      if super_column_s and hash.length > 0
+	hash = {super_column_s => hash}
+      end
       parse_object(key, hash)
     end
 
@@ -151,13 +180,8 @@ module Sandra
     end
 
     def multi_get(keys = [], options)
-      options.each do |k, v|
-	new_val = case v.class
-		  when String then v.to_s
-		  when Float then [v].pack("G")
-		  else v
-		  end
-	options[k] = new_val
+      [:start, :finish].each do |o|	
+	options[o] = pack(options[o])
       end
       connection.multi_get(self.to_s, options.delete(:keys), options.delete(:columns), options.delete(:sub_columns), options).map do |key, value|
 	self.parse_object(key, value)
