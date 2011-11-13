@@ -36,7 +36,7 @@ module Sandra
         attrs = attributes.dup
         key = attrs.delete(self.class.key)
 	if self.class.super_column_name
-	  attrs = attrs.delete(self.class.super_column_name) => attrs
+	  attrs = {attrs.delete(self.class.super_column_name) => attrs}
 	end
         if key && valid?
           self.class.insert(key, attrs)
