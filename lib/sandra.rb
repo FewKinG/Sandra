@@ -14,10 +14,19 @@ module Sandra
       attr_accessor :attributes, :new_record
       def initialize(attrs = {})
 	# TODO how set the key and super column ??
-        @attributes = attrs.stringify_keys
+        #@attributes = attrs.stringify_keys
+	@attributes = {}
+	attrs.stringify_keys.each do |k,v|
+	  if v.is_a? String
+	    @attributes[k] = v
+	  else
+	    self.send("#{k}=", v)
+	  end
+	end
         @new_record = true
-	@super_column_name = nil
       end
+      establish_connection
+      @super_column_name = nil
     end
   end
 
@@ -34,9 +43,10 @@ module Sandra
     run_callbacks callback_target do
       run_callbacks :save do
         attrs = attributes.dup
-        key = attrs.delete(self.class.key)
+        key = attrs.delete(self.class.key.to_s)
 	if self.class.super_column_name
-	  attrs = {attrs.delete(self.class.super_column_name) => attrs}
+	  sup_col_val = attrs.delete(self.class.super_column_name.to_s).to_s
+	  attrs = {sup_col_val => attrs}
 	end
         if key && valid?
           self.class.insert(key, attrs)
@@ -53,7 +63,7 @@ module Sandra
     def column(col_name, type)
       define_method col_name do
         attr = col_name.to_s
-	return nil if attributes[attr] = nil
+	return nil if attributes[attr].nil?
 	case type
 	when :double then attributes[attr].unpack("G").first
 	when :string then attributes[attr].to_s
@@ -71,7 +81,7 @@ module Sandra
     end
 
     def super_column(col_name, type)
-      super_column_name = col_name
+      @super_column_name = col_name.to_s
       column col_name, type   
     end
 
@@ -84,15 +94,6 @@ module Sandra
 
     def connection
       @connection || establish_connection
-    end
-
-    def get(key)
-      hash = connection.get(self.to_s, key)
-      unless hash.empty?
-        self.new_object(key, hash)
-      else
-        nil
-      end
     end
 
     def new_object(key, attributes)
@@ -126,9 +127,32 @@ module Sandra
       obj
     end
 
+    def parse_object(key, hash)
+      if @super_column_name
+	sup_col_val = hash.keys.first
+	hash = {@super_column_name => sup_col_val}.merge(hash.values.first)
+      end
+      unless hash.empty?
+        self.new_object(key, hash)
+      else
+        nil
+      end
+    end
+
+    def get(key)
+      hash = connection.get(self.to_s, key)
+      parse_object(key, hash)
+    end
+
     def range(options)
       connection.get_range(self.to_s, options).map do |key, value|
-        self.new_object(key, value)
+	self.parse_object(key, value)
+      end
+    end
+
+    def multi_get(keys = [], options)
+      connection.multi_get(self.to_s, options.delete(:keys), options.delete(:columns), options.delete(:sub_columns), options).map do |key, value|
+	self.parse_object(key, value)
       end
     end
   end
