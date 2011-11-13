@@ -53,6 +53,7 @@ module Sandra
     def column(col_name, type)
       define_method col_name do
         attr = col_name.to_s
+	return nil if attributes[attr] = nil
 	case type
 	when :double then attributes[attr].unpack("G").first
 	when :string then attributes[attr].to_s
@@ -67,7 +68,6 @@ module Sandra
 			   else val
 			   end
       end
-      @attributes[col_name.to_s] = ""
     end
 
     def super_column(col_name, type)
