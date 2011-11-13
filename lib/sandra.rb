@@ -165,7 +165,9 @@ module Sandra
       end
     end
 
-    def get(key, super_column_s = nil)
+    def get(key, super_column = nil)
+      raise "You have to specify a super column" if not super_column and super_column_name
+      raise "#{self.to_s} doesn't have a super column" if super_column and not super_column_name
       hash = connection.get(self.to_s, key, super_column_s)
       if super_column_s and hash.length > 0
 	hash = {super_column_s => hash}
