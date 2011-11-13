@@ -11,7 +11,7 @@ module Sandra
       include ActiveModel::Validations
       include ActiveModel::Conversion
       define_model_callbacks :create, :update, :save, :destroy
-      attr_accessor :attributes, :new_record, :super_column_name
+      attr_accessor :attributes, :new_record
       def initialize(attrs = {})
 	# TODO how set the key and super column ??
         @attributes = attrs.stringify_keys
@@ -67,6 +67,7 @@ module Sandra
 			   else val
 			   end
       end
+      @attributes[col_name.to_s] = ""
     end
 
     def super_column(col_name, type)
@@ -113,6 +114,10 @@ module Sandra
 
     def key
       @key
+    end
+
+    def super_column_name
+      @super_column_name
     end
 
     def create(columns = {})
