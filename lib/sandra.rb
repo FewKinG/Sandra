@@ -11,10 +11,12 @@ module Sandra
       include ActiveModel::Validations
       include ActiveModel::Conversion
       define_model_callbacks :create, :update, :save, :destroy
-      attr_accessor :attributes, :new_record
+      attr_accessor :attributes, :new_record, :super_column_name
       def initialize(attrs = {})
+	# TODO how set the key and super column ??
         @attributes = attrs.stringify_keys
         @new_record = true
+	@super_column_name = nil
       end
     end
   end
@@ -33,6 +35,9 @@ module Sandra
       run_callbacks :save do
         attrs = attributes.dup
         key = attrs.delete(self.class.key)
+	if self.class.super_column_name
+	  attrs = attrs.delete(self.class.super_column_name) => attrs
+	end
         if key && valid?
           self.class.insert(key, attrs)
           new_record = false
@@ -48,12 +53,25 @@ module Sandra
     def column(col_name, type)
       define_method col_name do
         attr = col_name.to_s
-        attributes[attr]
+	case type
+	when :double then attributes[attr].unpack("G").first
+	when :string then attributes[attr].to_s
+	else attributes[attr]
+	end
       end
       define_method "#{col_name}=" do |val|
         attr = col_name.to_s
-        attributes[attr] = val
+        attributes[attr] = case type
+			   when :double then [val].pack("G")
+			   when :string then val.to_s
+			   else val
+			   end
       end
+    end
+
+    def super_column(col_name, type)
+      super_column_name = col_name
+      column col_name, type   
     end
 
     def establish_connection(options = {})
