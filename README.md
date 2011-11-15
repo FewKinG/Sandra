@@ -15,12 +15,19 @@ stored in the cassandra database like you are used to with a relational database
 I plan to also support associations (one-to-one, one-to-many and many-to-many). 
 
 What's already possible:
+
 - Create a sandra model that can be loaded from and stored in the cassandra database
 - Define key attribute, super column, attributes and types for that model
 - Perform get, range and multi_get on the database
 - Supported column types so far: String and Double
+- Have the key and super column validated to prevent different objects from having the same 
+  key/super column values (this is done automatically)
 
-NOTE: This gem provides no generator to actually generate a model. If you want to use a generator, have a
+NOTE: If you don't use super columns then two hashes with the same keys are regarded to be the same object.
+If using a super column on that model however, two hashes are regarded to be identical objects only if their keys 
+AND their super column values are the same.
+
+Also note: This gem provides no generator to actually generate a model. If you want to use a generator, have a
 look into the sandra-rails gem (which I also forked to work with the 3.1.1 versions of actionpack and railties).
 
 Example
