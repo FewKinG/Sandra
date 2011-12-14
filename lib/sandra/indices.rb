@@ -52,6 +52,7 @@ module Sandra
 	  end
 	  puts "Performing multi_get"
 	  result = connection.multi_get(family_name, key, :start => start, :finish => finish, :batch_size => 30, :type => type).values
+	  puts "Got #{result.count} results"
 	else
 	  # Perform get_range over all keys
 	  puts "Performing get_range"
@@ -73,22 +74,21 @@ module Sandra
 
 	puts "Until manual filtering: #{Time.now - time}" 
 	if start	      
+	  puts "Perform manual filtering"
 	  type = @attribute_types[index[:column_attr].to_s]
 	  result.reject!{|entry| (start and unpack(entry.keys.first, type) < start) or (finish and unpack(entry.keys.first, type) > finish)}
 	end
 
 	puts "After manual filtering: #{Time.now - time}"
 	if options[:index_data_only]
-	  result.collect{|r| Marshal.load(r.values.first)}
+	  result.inject({}) {|hash,v| hash.merge(Marshal.load(v.values.first))}
+	  #result.collect{|r| Marshal.load(r.values.first)}
 	elsif self.super_column_name
 	  raise "Not supported yet"
 	else
-	  result_keys = result.collect{|r| Marshal.load(r.values.first)[:key]}
+	  result_keys = result.collect{|r| Marshal.load(r.values.first).values.collect{|v| v[:key]}}.flatten.compact
 	  result = []
-	  result_keys.each_slice(10) do |reskeys|
-	    result << multi_get(reskeys, :count => nil)
-	  end
-	  result
+	  multi_get(result_keys, :keys_at_once => 10, :batch_size => 30)
 	end
       end
 
@@ -238,3 +238,4 @@ module Sandra
       end
     end
   end
+end

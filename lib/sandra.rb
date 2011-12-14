@@ -2,6 +2,7 @@ require 'active_model'
 require 'cassandra/1.0'
 require 'sandra/key_validator'
 require 'sandra/super_column_validator'
+require 'sandra/indices'
 
 module Sandra
 
@@ -289,6 +290,7 @@ module Sandra
       @indices.keys.each do |index|
 	connection.clear_column_family!("#{self.to_s}Index#{index.to_s.camelcase}")
       end
+      connection.clear_column_family!("#{self.to_s}Indices")
     end
 
     def all
