@@ -80,7 +80,7 @@ module Sandra
         if key && valid?
           self.class.insert(key, attrs)
           new_record = false
-	  create_index_entry
+	  create_index_entry unless self.class.indices.empty?
 	  # Go through associations
 	  # For every assoication, store destination mapping
 	  # If the destination belongs to this model's class, add reverse mapping too
@@ -290,7 +290,9 @@ module Sandra
       @indices.keys.each do |index|
 	connection.clear_column_family!("#{self.to_s}Index#{index.to_s.camelcase}")
       end
-      connection.clear_column_family!("#{self.to_s}Indices")
+      unless indices.empty?
+        connection.clear_column_family!("#{self.to_s}Indices")
+      end
     end
 
     def all
