@@ -50,13 +50,12 @@ module Sandra
 	  unless key.is_a? Array
 	    key = [key]
 	  end
-	  puts "Performing multi_get"
-	  result = connection.multi_get(family_name, key, :start => start, :finish => finish, :batch_size => 30, :type => type).values
-	  puts "Got #{result.count} results"
+	  puts "Performing multi_get, type #{type}"
+	  result = connection.multi_get(family_name, key, :start => start, :finish => finish, :batch_size => 50, :type => type, :keys_at_once => 1000, :count => nil, :no_hash_return => true).values.compact
 	else
 	  # Perform get_range over all keys
 	  puts "Performing get_range"
-	  result = connection.get_range(family_name, :start => start, :finish => finish, :key_count => count, :batch_size => 30).values	
+	  result = connection.get_range(family_name, :start => start, :finish => finish, :key_count => count, :batch_size => 50).values.compact
 	end
 
 	puts "After request: #{Time.now - time}"
@@ -71,6 +70,8 @@ module Sandra
 	  end
 	  result = result.collect(&:values).flatten
 	end
+
+	puts "Got #{result.count} results"
 
 	puts "Until manual filtering: #{Time.now - time}" 
 	if start	      
@@ -88,7 +89,7 @@ module Sandra
 	else
 	  result_keys = result.collect{|r| Marshal.load(r.values.first).values.collect{|v| v[:key]}}.flatten.compact
 	  result = []
-	  multi_get(result_keys, :keys_at_once => 10, :batch_size => 30)
+	  multi_get(result_keys, :keys_at_once => 1000, :batch_size => 30)
 	end
       end
 

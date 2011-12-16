@@ -22,8 +22,6 @@ module Sandra
       define_model_callbacks :initialize, :only => :after
       attr_accessor :attributes, :new_record
       def initialize(attrs = {}, needPacking = true)
-	# TODO how set the key and super column ??
-	#@attributes = attrs.stringify_keys
 	@attributes = {}
 	attrs.stringify_keys.each do |k,v|
 	  if v.is_a? String
@@ -125,7 +123,7 @@ module Sandra
     end
 
     def has_one(assoc_name)
-      klass = Kernel.const_get assoc_name.to_s.camelcase 
+      klass = assoc_name.to_s.camelcase.constantize
       associated_with << assoc_name
 
       define_method assoc_name do
